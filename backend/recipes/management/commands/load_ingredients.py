@@ -1,5 +1,7 @@
 import json
+
 from django.core.management.base import BaseCommand
+
 from recipes.models import Ingredient
 
 
@@ -27,3 +29,4 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f'File {file_path} not found'))
         except json.JSONDecodeError:
             self.stdout.write(self.style.ERROR('Invalid JSON format'))
+

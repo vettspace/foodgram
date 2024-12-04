@@ -1,37 +1,17 @@
-# Django и DRF
 Django==3.2.3
 djangorestframework==3.12.4
 django-filter==23.2
-
-# Для работы с PostgreSQL
-psycopg2-binary==2.9.3
-
-# Для аутентификации и авторизации
-djoser==2.1.0
 djangorestframework-simplejwt==4.8.0
-django-cors-headers==4.2.0
-
-# Для работы с изображениями
-Pillow==11.0.0
-
-# Для документации API
-drf-yasg==1.21.7
-
-# Для безопасности
+psycopg2-binary==2.9.3
+isort>=5.12.0
+drf-base64>=2.0
 python-dotenv==1.0.0
-
-# Для форматирования кода и проверки качества
+Pillow==11.0.0
+djoser==2.1.0
+gunicorn==20.1.0
+black==23.7.0
 flake8==6.0.0
 flake8-isort==6.0.0
+reportlab>=4.0.4
+sqlparse>=0.4.4
 pep8-naming==0.13.3
-black==23.7.0
-
-
-# Для production
-gunicorn==20.1.0
-
-# Для генерации PDF писка покупок
-reportlab==4.0.4
-
-# Для работы с данными
-pandas==2.0.3  # для обработки CSV файлов при импорте ингредиентов

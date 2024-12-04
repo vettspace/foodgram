@@ -1,12 +1,30 @@
-import base64
-from django.core.files.base import ContentFile
+import csv
+
+from django.http import HttpResponse
 
 
-def get_image_from_base64(base64_string):
-    """Преобразование строки base64 в объект файла."""
-    try:
-        format, imgstr = base64_string.split(';base64,')
-        ext = format.split('/')[-1]
-        return ContentFile(base64.b64decode(imgstr), name=f'temp.{ext}')
-    except Exception as e:
-        raise ValueError(f'Invalid image format: {str(e)}')
+def generate_shopping_cart_csv(shopping_cart):
+    """Генерация CSV файла со списком покупок."""
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = (
+        'attachment; filename="shopping_list.csv"'
+    )
+
+    writer = csv.writer(response)
+    # Записываем заголовок
+    writer.writerow(['Ингредиент', 'Количество', 'Единица измерения'])
+
+    if shopping_cart:
+        # Записываем данные
+        for item in shopping_cart:
+            writer.writerow(
+                [
+                    item['ingredients__name'],
+                    item['amount'],
+                    item['ingredients__measurement_unit'],
+                ]
+            )
+    else:
+        writer.writerow(['Список покупок пуст'])
+
+    return response
