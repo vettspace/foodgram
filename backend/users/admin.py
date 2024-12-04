@@ -125,4 +125,3 @@ class UserAdmin(BaseUserAdmin):
         if not obj:
             return []
         return super().get_inline_instances(request, obj)
-
