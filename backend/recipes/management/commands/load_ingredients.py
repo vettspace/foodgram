@@ -29,4 +29,3 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f'File {file_path} not found'))
         except json.JSONDecodeError:
             self.stdout.write(self.style.ERROR('Invalid JSON format'))
-

@@ -23,7 +23,8 @@ class Tag(models.Model):
 
     def __str__(self):
         return self.name
-    
+
+
 class Ingredient(models.Model):
     """
     Модель ингредиентов.
@@ -174,6 +175,7 @@ class FavoriteRecipe(models.Model):
         list_ = [item['name'] for item in self.recipe.values('name')]
         return f'Пользователь {self.user} добавил {list_} в избранные.'
 
+    @staticmethod
     @receiver(post_save, sender=User)
     def create_favorite_recipe(sender, instance, created, **kwargs):
         """
@@ -208,6 +210,7 @@ class ShoppingCart(models.Model):
         list_ = [item['name'] for item in self.recipe.values('name')]
         return f'Пользователь {self.user} добавил {list_} в покупки.'
 
+    @staticmethod
     @receiver(post_save, sender=User)
     def create_shopping_cart(sender, instance, created, **kwargs):
         """
