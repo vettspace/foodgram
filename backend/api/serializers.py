@@ -2,13 +2,15 @@ from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.hashers import make_password
 from django.shortcuts import get_object_or_404
 from drf_base64.fields import Base64ImageField
+from recipes.models import Ingredient, Recipe, RecipeIngredient, Subscribe, Tag
 from rest_framework import serializers
 
-from recipes.models import Ingredient, Recipe, RecipeIngredient, Subscribe, Tag
-
 from . import constants
-from .mixins import (IngredientCreationMixin, PasswordValidationMixin,
-                     SubscriptionMixin)
+from .mixins import (
+    IngredientCreationMixin,
+    PasswordValidationMixin,
+    SubscriptionMixin,
+)
 
 User = get_user_model()
 
@@ -52,6 +54,7 @@ class UserSerializer(SubscriptionMixin, serializers.ModelSerializer):
     """
     Сериализатор для отображения списка пользователей.
     """
+
     avatar = Base64ImageField(required=False)
     is_subscribed = serializers.SerializerMethodField()
 
