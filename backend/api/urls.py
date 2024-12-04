@@ -1,14 +1,6 @@
-from api.views import (
-    CustomAuthToken,
-    CustomUserViewSet,
-    FavoriteRecipeView,
-    IngredientViewSet,
-    RecipeViewSet,
-    ShoppingCartView,
-    SubscriptionView,
-    TagViewSet,
-    change_password,
-)
+from api.views import (CustomAuthToken, CustomUserViewSet, FavoriteRecipeView,
+                       IngredientViewSet, RecipeViewSet, ShoppingCartView,
+                       SubscriptionView, TagViewSet, change_password)
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
