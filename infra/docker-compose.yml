@@ -15,6 +15,8 @@ services:
       - postgres_data:/var/lib/postgresql/data/
     env_file:
       - ./.env
+    networks:
+      - foodgram-network
 
   backend:
     image: vettspace/foodgram_backend:latest
@@ -27,6 +29,10 @@ services:
       - db
     env_file:
       - ./.env
+    networks:
+      - foodgram-network
+    environment:
+      - DB_HOST=db
 
   frontend:
     image: vettspace/foodgram_frontend:latest
@@ -34,6 +40,8 @@ services:
       - ../frontend/:/app/result_build/
     depends_on:
       - backend
+    networks:
+      - foodgram-network
 
   nginx:
     image: nginx:latest
@@ -49,3 +57,9 @@ services:
       - media_value:/var/html/media/
     depends_on:
       - frontend
+    networks:
+      - foodgram-network
+
+networks:
+  foodgram-network:
+    name: foodgram-network
