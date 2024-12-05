@@ -94,69 +94,65 @@ jobs:
       - build_and_push_to_docker_hub
       - build_frontend_and_push_to_docker_hub
     steps:
-    - name: Check out the repo
-      uses: actions/checkout@v3
+      - name: Check out the repo
+        uses: actions/checkout@v3
 
-    - name: Copy docker-compose.yml and nginx config via ssh
-      uses: appleboy/scp-action@master
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.SSH_USER }}
-        key: ${{ secrets.SSH_KEY }}
-        passphrase: ${{ secrets.SSH_PASSPHRASE }}
-        source: "docker-compose.yml,nginx/default.conf"
-        target: "foodgram/"
-        
-    - name: Create env file
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.SSH_USER }}
-        key: ${{ secrets.SSH_KEY }}
-        passphrase: ${{ secrets.SSH_PASSPHRASE }}
-        script: |
-          cd foodgram/
-          sudo mkdir -p infra
-          cd infra
-          sudo touch .env
-          echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
-          echo POSTGRES_DB=${{ secrets.DB_NAME }} >> .env
-          echo POSTGRES_USER=${{ secrets.POSTGRES_USER }} >> .env
-          echo POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} >> .env
-          echo DB_HOST=${{ secrets.DB_HOST }} >> .env
-          echo DB_PORT=${{ secrets.DB_PORT }} >> .env
-          echo SECRET_KEY="${{ secrets.SECRET_KEY }}" >> .env
-          echo ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }} >> .env
-          echo DEBUG=False >> .env
+      - name: Copy project files
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          source: "infra/docker-compose.yml,infra/default.conf,docs/openapi-schema.yml,docs/redoc.html"
+          target: "foodgram/"
+          strip_components: 1
 
-    - name: Deploy application
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.SSH_USER }}
-        key: ${{ secrets.SSH_KEY }}
-        passphrase: ${{ secrets.SSH_PASSPHRASE }}
-        script: |
-          cd foodgram/
-          sudo docker-compose down
-          sudo docker pull ${{ secrets.DOCKER_USERNAME }}/foodgram_backend:latest
-          sudo docker pull ${{ secrets.DOCKER_USERNAME }}/foodgram_frontend:latest
-          sudo docker-compose up -d
-          
-    - name: Execute database commands
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.SSH_USER }}
-        key: ${{ secrets.SSH_KEY }}
-        passphrase: ${{ secrets.SSH_PASSPHRASE }}
-        script: |
-          cd foodgram/
-          sudo docker-compose exec -T backend python manage.py makemigrations
-          sudo docker-compose exec -T backend python manage.py migrate
-          sudo docker-compose exec -T backend python manage.py collectstatic --no-input
-          sudo docker-compose exec -T backend python manage.py create_tags
-          sudo docker-compose exec -T backend python manage.py load_ingredients data/ingredients.json
+      - name: Create env file and deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          script: |
+            cd foodgram/
+            sudo mkdir -p docs
+            sudo mv openapi-schema.yml docs/
+            sudo mv redoc.html docs/
+            
+            # Создание .env файла
+            sudo touch .env
+            echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
+            echo POSTGRES_DB=${{ secrets.DB_NAME }} >> .env
+            echo POSTGRES_USER=${{ secrets.POSTGRES_USER }} >> .env
+            echo POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} >> .env
+            echo DB_HOST=${{ secrets.DB_HOST }} >> .env
+            echo DB_PORT=${{ secrets.DB_PORT }} >> .env
+            echo SECRET_KEY="${{ secrets.SECRET_KEY }}" >> .env
+            echo ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }} >> .env
+            echo DEBUG=False >> .env
+            
+            # Развертывание с Docker Compose
+            sudo docker compose down
+            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/foodgram_backend:latest
+            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/foodgram_frontend:latest
+            sudo docker compose up -d
+
+      - name: Execute database commands
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          script: |
+            cd foodgram/
+            sudo docker compose exec -T backend python manage.py makemigrations
+            sudo docker compose exec -T backend python manage.py migrate
+            sudo docker compose exec -T backend python manage.py collectstatic --no-input
+            sudo docker compose exec -T backend python manage.py create_tags
+            sudo docker compose exec -T backend python manage.py load_ingredients data/ingredients.json
 
   send_message:
     runs-on: ubuntu-latest
