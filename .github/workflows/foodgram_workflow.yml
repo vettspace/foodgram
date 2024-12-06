@@ -88,14 +88,27 @@ jobs:
           tags: ${{ secrets.DOCKER_USERNAME }}/foodgram_frontend:latest
 
   deploy:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     needs: 
       - build_and_push_to_docker_hub
       - build_frontend_and_push_to_docker_hub
-    if: github.ref == 'refs/heads/main'
     steps:
       - name: Check out the repo
         uses: actions/checkout@v3
+
+      - name: Create project structure and copy files
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          script: |
+            # Создаем необходимые директории
+            mkdir -p foodgram/docs
+            mkdir -p foodgram/frontend
+            mkdir -p foodgram/infra
 
       - name: Copy project files
         uses: appleboy/scp-action@master
@@ -104,11 +117,11 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          source: "infra/docker-compose.yml,infra/default.conf,docs/*"
-          target: "~/foodgram"
+          source: "infra/docker-compose.yml,infra/default.conf,docs/openapi-schema.yml,docs/redoc.html"
+          target: "foodgram/"
           strip_components: 1
 
-      - name: Execute remote SSH commands
+      - name: Setup environment and deploy
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
@@ -116,9 +129,16 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
-            cd ~/foodgram
-
-            # Создаем .env файл
+            cd foodgram/
+            
+            # Перемещаем файлы в нужные директории
+            mv openapi-schema.yml docs/
+            mv redoc.html docs/
+            mv docker-compose.yml infra/
+            mv default.conf infra/
+            
+            # Создаем и настраиваем .env файл
+            cd infra/
             sudo touch .env
             echo DB_ENGINE=django.db.backends.postgresql >> .env
             echo POSTGRES_DB=${{ secrets.DB_NAME }} >> .env
@@ -129,24 +149,36 @@ jobs:
             echo SECRET_KEY="${{ secrets.SECRET_KEY }}" >> .env
             echo ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }} >> .env
             echo DEBUG=False >> .env
-            echo DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} >> .env
-
-            # Останавливаем и удаляем старые контейнеры
-            sudo docker compose down -v
-            sudo docker system prune -af
-
-            # Загружаем новые образы
+            
+            # Запускаем контейнеры
+            sudo docker compose down
             sudo docker pull ${{ secrets.DOCKER_USERNAME }}/foodgram_backend:latest
             sudo docker pull ${{ secrets.DOCKER_USERNAME }}/foodgram_frontend:latest
-
-            # Запускаем контейнеры
             sudo docker compose up -d
 
+      - name: Execute database commands
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          script: |
+            cd foodgram/infra/
+            
             # Ждем, пока база данных станет доступной
             echo "Waiting for database to be ready..."
             sleep 30
-
-            # Применяем миграции и выполняем необходимые команды
+            
+            # Проверяем доступность базы данных
+            until sudo docker compose exec -T db pg_isready -U ${{ secrets.POSTGRES_USER }} -d ${{ secrets.DB_NAME }}; do
+              echo "Database is unavailable - sleeping"
+              sleep 2
+            done
+            
+            echo "Database is up - executing commands"
+            
+            # Выполняем миграции и другие команды
             sudo docker compose exec -T backend python manage.py makemigrations
             sudo docker compose exec -T backend python manage.py migrate
             sudo docker compose exec -T backend python manage.py collectstatic --no-input
