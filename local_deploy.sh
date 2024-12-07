@@ -28,4 +28,6 @@ docker-compose exec backend python manage.py migrate
 docker-compose exec backend python manage.py collectstatic --no-input
 docker-compose exec backend python manage.py create_tags
 docker-compose exec backend python manage.py load_ingredients data/ingredients.json
+docker-compose exec backend python manage.py create_users
+docker-compose exec backend python manage.py create_recipes
 docker-compose exec backend python manage.py createsuperuser
