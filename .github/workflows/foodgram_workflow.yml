@@ -130,11 +130,6 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             cd foodgram/
-
-            # Директории для SSL
-            mkdir -p infra/ssl_certs
-            mkdir -p infra/certbot_www
-            
             # Перемещаем файлы в нужные директории
             mv openapi-schema.yml docs/
             mv redoc.html docs/
