@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Остановить и удалить все контейнеры
 docker stop $(docker ps -aq)
 docker rm $(docker ps -aq)
@@ -18,9 +16,10 @@ docker build -t vettspace/foodgram_frontend .
 cd ../backend
 docker build -t vettspace/foodgram_backend .
 
-# Перейти в директорию infra и запустить docker-compose
+# Перейти в директорию infra 
+# и запустить docker-compose для локального развертывания
 cd ../infra
-docker-compose up -d --build
+docker-compose -f local-docker-compose.yml up -d --build
 
 # Выполнить миграции и другие команды Django
 docker-compose exec backend python manage.py makemigrations
