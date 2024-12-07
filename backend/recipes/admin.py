@@ -1,9 +1,15 @@
+from api.constants import EMPTY
 from django.contrib import admin
 
-from api.constants import EMPTY
-
-from .models import (FavoriteRecipe, Ingredient, Recipe, RecipeIngredient,
-                     ShoppingCart, Subscribe, Tag)
+from .models import (
+    FavoriteRecipe,
+    Ingredient,
+    Recipe,
+    RecipeIngredient,
+    ShoppingCart,
+    Subscribe,
+    Tag,
+)
 
 
 class RecipeIngredientAdmin(admin.StackedInline):
