@@ -4,39 +4,24 @@ from django.contrib.auth.hashers import make_password
 from django.db.models import Count, Exists, OuterRef, Sum, Value
 from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet
-from recipes.models import (
-    FavoriteRecipe,
-    Ingredient,
-    Recipe,
-    ShoppingCart,
-    Subscribe,
-    Tag,
-)
+from recipes.models import (FavoriteRecipe, Ingredient, Recipe, ShoppingCart,
+                            Subscribe, Tag)
 from rest_framework import generics, status, viewsets
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.permissions import (
-    SAFE_METHODS,
-    AllowAny,
-    IsAuthenticated,
-    IsAuthenticatedOrReadOnly,
-)
+from rest_framework.permissions import (SAFE_METHODS, AllowAny,
+                                        IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 
 from . import constants
 from .mixins import AdminOrReadOnlyMixin, RecipeAccessMixin
-from .serializers import (
-    ChangePasswordSerializer,
-    CreateUserSerializer,
-    IngredientSerializer,
-    ObtainTokenSerializer,
-    RecipeCreateUpdateSerializer,
-    RecipeReadSerializer,
-    SubscriptionSerializer,
-    TagSerializer,
-    UserSerializer,
-)
+from .serializers import (ChangePasswordSerializer, CreateUserSerializer,
+                          IngredientSerializer, ObtainTokenSerializer,
+                          RecipeCreateUpdateSerializer, RecipeReadSerializer,
+                          SubscriptionSerializer, TagSerializer,
+                          UserSerializer)
 from .utils import generate_shopping_cart_csv
 
 User = get_user_model()

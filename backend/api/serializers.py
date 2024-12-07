@@ -6,7 +6,8 @@ from recipes.models import Ingredient, Recipe, RecipeIngredient, Subscribe, Tag
 from rest_framework import serializers
 
 from . import constants
-from .mixins import IngredientCreationMixin, PasswordValidationMixin, SubscriptionMixin
+from .mixins import (IngredientCreationMixin, PasswordValidationMixin,
+                     SubscriptionMixin)
 
 User = get_user_model()
 
