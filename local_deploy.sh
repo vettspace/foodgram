@@ -17,9 +17,9 @@ cd ../backend
 docker build -t vettspace/foodgram_backend .
 
 # Перейти в директорию infra 
-# и запустить docker-compose для локального развертывания
+# и запустить docker-local-compose для локального развертывания
 cd ../infra
-docker-compose up -d --build
+docker-compose -f docker-local-compose.yml up -d --build
 
 # Выполнить миграции и другие команды Django
 docker-compose exec backend python manage.py makemigrations

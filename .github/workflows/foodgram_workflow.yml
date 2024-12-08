@@ -148,6 +148,9 @@ jobs:
             echo SECRET_KEY="${{ secrets.SECRET_KEY }}" >> .env
             echo ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }} >> .env
             echo DEBUG=False >> .env
+            echo DJANGO_SUPERUSER_PASSWORD=${{ secrets.SUPERUSER_PASSWORD }} >> .env
+            echo DJANGO_SUPERUSER_EMAIL=${{ secrets.SUPERUSER_MAIL }} >> .env
+            echo DJANGO_SUPERUSER_USERNAME=${{ secrets.SUPERUSER_LOGIN }} >> .env
             
             # Запускаем контейнеры
             sudo docker compose down
@@ -185,7 +188,11 @@ jobs:
             sudo docker compose exec -T backend python manage.py load_ingredients data/ingredients.json
             sudo docker compose exec -T backend python manage.py create_users
             sudo docker compose exec -T backend python manage.py create_recipes
-
+            
+            # Создаем суперпользователя
+            sudo docker compose exec -T backend python manage.py createsuperuser --noinput \
+              --username ${{ secrets.SUPERUSER_LOGIN }} \
+              --email ${{ secrets.SUPERUSER_MAIL }}
 
   send_message:
     runs-on: ubuntu-latest
