@@ -31,9 +31,6 @@ services:
       - foodgram-network
     environment:
       - DB_HOST=db
-      - DJANGO_SUPERUSER_PASSWORD=${SUPERUSER_PASSWORD}
-      - DJANGO_SUPERUSER_EMAIL=${SUPERUSER_MAIL}
-      - DJANGO_SUPERUSER_USERNAME=${SUPERUSER_LOGIN}
 
   frontend:
     image: vettspace/foodgram_frontend:latest
