@@ -152,34 +152,31 @@ class FavoriteRecipe(models.Model):
     """
     Модель для избранных рецептов.
     """
-
-    user = models.OneToOneField(
+    user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        null=True,
-        related_name='favorite_recipe',
+        related_name='favorite_recipes',
         verbose_name='Пользователь',
     )
-    recipe = models.ManyToManyField(
-        Recipe, related_name='favorite_recipe', verbose_name='Избранный рецепт'
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='favorited_by',
+        verbose_name='Избранный рецепт'
     )
 
     class Meta:
         verbose_name = 'Избранный рецепт'
         verbose_name_plural = 'Избранные рецепты'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'recipe'],
+                name='unique_favorite_recipe'
+            )
+        ]
 
     def __str__(self):
-        list_ = [item['name'] for item in self.recipe.values('name')]
-        return f'Пользователь {self.user} добавил {list_} в избранные.'
-
-    @staticmethod
-    @receiver(post_save, sender=User)
-    def create_favorite_recipe(sender, instance, created, **kwargs):
-        """
-        Создает объект избранного рецепта при создании пользователя.
-        """
-        if created:
-            return FavoriteRecipe.objects.create(user=instance)
+        return f'{self.user} добавил {self.recipe} в избранное'
 
 
 class ShoppingCart(models.Model):

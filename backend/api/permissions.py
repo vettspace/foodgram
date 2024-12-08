@@ -21,13 +21,17 @@ class IsAuthorOrAdminOrReadOnly(permissions.BasePermission):
     Разрешение, позволяющее доступ автору объекта или администратору.
     """
 
+    def has_permission(self, request, view):
+        return bool(
+            request.method in permissions.SAFE_METHODS
+            or request.user
+            and request.user.is_authenticated
+        )
+
     def has_object_permission(self, request, view, obj):
-        """
-        Проверяет, имеет ли пользователь разрешение
-        на выполнение запроса для конкретного объекта.
-        """
-        return (
-            obj.author == request.user
-            or request.method in permissions.SAFE_METHODS
-            or request.user.is_superuser
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return bool(
+            request.user
+            and (obj.author == request.user or request.user.is_staff)
         )

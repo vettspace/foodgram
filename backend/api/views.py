@@ -3,21 +3,19 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from django.db.models import Count, Exists, OuterRef, Sum, Value
 from django.shortcuts import get_object_or_404
-from django.urls import reverse
 from djoser.views import UserViewSet
 from recipes.models import (FavoriteRecipe, Ingredient, Recipe, ShoppingCart,
                             Subscribe, Tag)
-from rest_framework import generics, serializers, status, viewsets
+from rest_framework import generics, permissions, serializers, status, viewsets
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.permissions import (SAFE_METHODS, AllowAny,
-                                        IsAuthenticated,
-                                        IsAuthenticatedOrReadOnly)
+from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from . import constants
 from .mixins import AdminOrReadOnlyMixin, RecipeAccessMixin
+from .permissions import IsAuthorOrAdminOrReadOnly
 from .serializers import (ChangePasswordSerializer, CreateUserSerializer,
                           IngredientSerializer, ObtainTokenSerializer,
                           RecipeCreateUpdateSerializer, RecipeReadSerializer,
@@ -82,9 +80,7 @@ class SubscriptionView(
 
 
 class FavoriteRecipeView(
-    RecipeAccessMixin,
-    generics.ListCreateAPIView,
-    generics.RetrieveDestroyAPIView,
+    RecipeAccessMixin, generics.CreateAPIView, generics.DestroyAPIView
 ):
     """
     Представление для добавления и удаления рецепта в/из избранных.
@@ -93,60 +89,36 @@ class FavoriteRecipeView(
     serializer_class = RecipeReadSerializer
     permission_classes = (IsAuthenticated,)
 
-    def get_queryset(self):
-        return Recipe.objects.all()
-
     def create(self, request, *args, **kwargs):
-        try:
-            recipe = self.get_recipe()
-            if FavoriteRecipe.objects.filter(
-                user=request.user, recipe=recipe
-            ).exists():
-                return Response(
-                    {'errors': 'Рецепт уже добавлен в избранное'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        recipe = self.get_recipe()
 
-            FavoriteRecipe.objects.create(user=request.user, recipe=recipe)
-
-            response_data = {
-                'id': recipe.id,
-                'name': recipe.name,
-                'image': (
-                    request.build_absolute_uri(recipe.image.url)
-                    if recipe.image
-                    else None
-                ),
-                'cooking_time': recipe.cooking_time,
-            }
-
-            return Response(response_data, status=status.HTTP_201_CREATED)
-
-        except Exception as e:
+        if FavoriteRecipe.objects.filter(
+            user=request.user, recipe=recipe
+        ).exists():
             return Response(
-                {'errors': str(e)}, status=status.HTTP_400_BAD_REQUEST
+                {'errors': 'Рецепт уже добавлен в избранное'},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-    def destroy(self, request, *args, **kwargs):
-        try:
-            recipe = self.get_recipe()
-            favorite = FavoriteRecipe.objects.filter(
-                user=request.user, recipe=recipe
-            )
+        FavoriteRecipe.objects.create(user=request.user, recipe=recipe)
 
-            if not favorite.exists():
-                return Response(
-                    {'errors': 'Рецепт не находится в избранном'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        serializer = self.get_serializer(recipe)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-            favorite.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+    def delete(self, request, *args, **kwargs):
+        recipe = self.get_recipe()
+        favorite = FavoriteRecipe.objects.filter(
+            user=request.user, recipe=recipe
+        )
 
-        except Exception as e:
+        if not favorite.exists():
             return Response(
-                {'errors': str(e)}, status=status.HTTP_400_BAD_REQUEST
+                {'errors': 'Рецепт не находится в избранном'},
+                status=status.HTTP_400_BAD_REQUEST,
             )
+
+        favorite.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ShoppingCartView(
@@ -291,7 +263,21 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     queryset = Recipe.objects.all()
     filterset_class = RecipeFilter
-    permission_classes = (IsAuthenticatedOrReadOnly,)
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            # Для просмотра списка рецептов и отдельного рецепта
+            permission_classes = [permissions.AllowAny]
+        elif self.action in ['create']:
+            # Для создания рецепта нужна аутентификация
+            permission_classes = [permissions.IsAuthenticated]
+        elif self.action in ['update', 'partial_update', 'destroy']:
+            # Для редактирования и удаления - только автор или админ
+            permission_classes = [IsAuthorOrAdminOrReadOnly]
+        else:
+            # Для остальных действий требуется аутентификация
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
         return (
@@ -333,9 +319,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         """Представление для получения ссылки на рецепт."""
         try:
             recipe = self.get_object()
-            link = request.build_absolute_uri(
-                reverse('api:recipes-detail', kwargs={'pk': recipe.id})
-            )
+            link = request.build_absolute_uri(f'/recipes/{recipe.id}/')
             return Response({'short-link': link}, status=status.HTTP_200_OK)
         except Recipe.DoesNotExist:
             return Response(
