@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet
 from recipes.models import (FavoriteRecipe, Ingredient, Recipe, ShoppingCart,
                             Subscribe, Tag)
-from rest_framework import generics, status, viewsets
+from rest_framework import generics, serializers, status, viewsets
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.decorators import action, api_view, permission_classes
@@ -90,20 +90,62 @@ class FavoriteRecipeView(
     """
 
     serializer_class = RecipeReadSerializer
+    permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
         return Recipe.objects.all()
 
     def create(self, request, *args, **kwargs):
-        recipe = self.get_recipe()
-        request.user.favorite_recipe.recipe.add(recipe)
-        serializer = self.get_serializer(recipe)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        try:
+            recipe = self.get_recipe()
+            if FavoriteRecipe.objects.filter(
+                user=request.user, recipe=recipe
+            ).exists():
+                return Response(
+                    {'errors': 'Рецепт уже добавлен в избранное'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            FavoriteRecipe.objects.create(user=request.user, recipe=recipe)
+
+            response_data = {
+                'id': recipe.id,
+                'name': recipe.name,
+                'image': (
+                    request.build_absolute_uri(recipe.image.url)
+                    if recipe.image
+                    else None
+                ),
+                'cooking_time': recipe.cooking_time,
+            }
+
+            return Response(response_data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response(
+                {'errors': str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
 
     def destroy(self, request, *args, **kwargs):
-        recipe = self.get_recipe()
-        request.user.favorite_recipe.recipe.remove(recipe)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        try:
+            recipe = self.get_recipe()
+            favorite = FavoriteRecipe.objects.filter(
+                user=request.user, recipe=recipe
+            )
+
+            if not favorite.exists():
+                return Response(
+                    {'errors': 'Рецепт не находится в избранном'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            favorite.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        except Exception as e:
+            return Response(
+                {'errors': str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class ShoppingCartView(
@@ -139,13 +181,13 @@ class CustomAuthToken(ObtainAuthToken):
     permission_classes = (AllowAny,)
 
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.serializer_class(
+            data=request.data, context={'request': request}
+        )
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
-        return Response(
-            {'auth_token': token.key}, status=status.HTTP_201_CREATED
-        )
+        return Response({'auth_token': token.key})
 
 
 class CustomUserViewSet(UserViewSet):
@@ -154,7 +196,11 @@ class CustomUserViewSet(UserViewSet):
     """
 
     serializer_class = UserSerializer
-    permission_classes = (IsAuthenticated,)
+
+    def get_permissions(self):
+        if self.action in ['create', 'list', 'retrieve']:
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
         if self.request.user.is_authenticated:
@@ -179,7 +225,10 @@ class CustomUserViewSet(UserViewSet):
     @action(detail=False, permission_classes=(IsAuthenticated,))
     def subscriptions(self, request):
         user = request.user
-        queryset = Subscribe.objects.filter(user=user)
+        queryset = Subscribe.objects.filter(user=user).annotate(
+            recipes_count=Count('author__recipe'),
+            is_subscribed=Value(True),
+        )
         pages = self.paginate_queryset(queryset)
         serializer = SubscriptionSerializer(
             pages, many=True, context={'request': request}
@@ -193,6 +242,12 @@ class CustomUserViewSet(UserViewSet):
     )
     def upload_avatar(self, request):
         """Представление для загрузки аватара пользователя."""
+        if 'avatar' not in request.data:
+            return Response(
+                {'error': 'Field "avatar" is required'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         user = request.user
         serializer = self.get_serializer(user, data=request.data, partial=True)
         if serializer.is_valid():
@@ -224,7 +279,7 @@ class CustomUserViewSet(UserViewSet):
                 status=status.HTTP_200_OK,
             )
         return Response(
-            {'message': 'Avatar not found'}, status=status.HTTP_404_NOT_FOUND
+            {'message': 'Avatar not found'}, status=status.HTTP_400_BAD_REQUEST
         )
 
 
@@ -297,11 +352,21 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
         return generate_shopping_cart_csv(shopping_cart)
 
+    def update(self, request, *args, **kwargs):
+        try:
+            return super().update(request, *args, **kwargs)
+        except serializers.ValidationError as e:
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
-class TagViewSet(AdminOrReadOnlyMixin, viewsets.ModelViewSet):
-    """
-    Представление для управления тегами.
-    """
+    def partial_update(self, request, *args, **kwargs):
+        try:
+            return super().partial_update(request, *args, **kwargs)
+        except serializers.ValidationError as e:
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TagViewSet(RecipeAccessMixin, viewsets.ModelViewSet):
+    """Список тэгов."""
 
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
@@ -330,7 +395,7 @@ def change_password(request):
         serializer.save()
         return Response(
             {'message': constants.MESSAGE_PASSWORD_CHANGED},
-            status=status.HTTP_201_CREATED,
+            status=status.HTTP_204_NO_CONTENT,
         )
     return Response(
         {'error': constants.ERROR_INVALID_DATA},

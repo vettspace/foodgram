@@ -1,7 +1,8 @@
-from api.permissions import IsAdminOrReadOnly
 from django.shortcuts import get_object_or_404
 from recipes.models import Recipe, RecipeIngredient
-from rest_framework.permissions import AllowAny
+from rest_framework import status
+from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAdminUser
+from rest_framework.response import Response
 
 
 class RecipeAccessMixin:
@@ -24,11 +25,27 @@ class RecipeAccessMixin:
 
 class AdminOrReadOnlyMixin:
     """
-    Миксин для установки прав доступа и отключения пагинации.
+    Миксин для предоставления доступа только администраторам
+    или в режиме только для чтения.
     """
+    def get_permissions(self):
+        """
+        Устанавливает разрешения в зависимости от действия.
+        """
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAdminUser()]
+        return [AllowAny()]
 
-    permission_classes = (IsAdminOrReadOnly,)
-    pagination_class = None
+    def handle_no_permission(self):
+        """
+        Обрабатывает случай, когда пользователь не имеет прав доступа.
+        """
+        if self.request.method not in SAFE_METHODS:
+            return Response(
+                {"detail": "Method not allowed."},
+                status=status.HTTP_405_METHOD_NOT_ALLOWED
+            )
+        return super().handle_no_permission()
 
 
 class SubscriptionMixin:

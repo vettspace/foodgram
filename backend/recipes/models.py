@@ -8,12 +8,9 @@ User = get_user_model()
 
 
 class Tag(models.Model):
-    """
-    Модель тегов.
-    """
+    """Модель тегов."""
 
-    name = models.CharField('Имя', max_length=60, unique=True)
-    color = models.CharField('Цвет', max_length=7, unique=True)
+    name = models.CharField('Название', max_length=60, unique=True)
     slug = models.SlugField('Ссылка', max_length=100, unique=True)
 
     class Meta:
@@ -53,7 +50,7 @@ class Recipe(models.Model):
         related_name='recipe',
         verbose_name='Автор',
     )
-    name = models.CharField('Название рецепта', max_length=255)
+    name = models.CharField('Название рецепта', max_length=256)
     image = models.ImageField(
         'Изображение рецепта',
         upload_to='static/recipe/',

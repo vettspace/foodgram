@@ -13,38 +13,37 @@ User = get_user_model()
 
 
 class ObtainTokenSerializer(serializers.Serializer):
-    """
-    Сериализатор для получения токена с использованием email и пароля.
-    """
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
 
-    email = serializers.CharField(label='Email', write_only=True)
-    password = serializers.CharField(
-        label='Пароль',
-        style=constants.PASSWORD_STYLE,
-        trim_whitespace=False,
-        write_only=True,
-    )
-    token = serializers.CharField(label='Токен', read_only=True)
+    def validate(self, attrs):
+        email = attrs.get('email')
+        password = attrs.get('password')
 
-    def validate(self, data):
-        email = data.get('email')
-        password = data.get('password')
         if email and password:
             user = authenticate(
                 request=self.context.get('request'),
-                email=email,
+                username=email,
                 password=password,
             )
+
             if not user:
                 raise serializers.ValidationError(
-                    constants.AUTH_ERROR_MESSAGE, code='authorization'
+                    'Не удается войти с предоставленными учетными данными.',
+                    code='authorization',
+                )
+            if not user.is_active:
+                raise serializers.ValidationError(
+                    'Учетная запись отключена.', code='authorization'
                 )
         else:
             raise serializers.ValidationError(
-                constants.ERROR_MISSING_CREDENTIALS, code='authorization'
+                'Должны быть указаны "email" и "password".',
+                code='authorization',
             )
-        data['user'] = user
-        return data
+
+        attrs['user'] = user
+        return attrs
 
 
 class UserSerializer(SubscriptionMixin, serializers.ModelSerializer):
@@ -67,6 +66,12 @@ class UserSerializer(SubscriptionMixin, serializers.ModelSerializer):
             'avatar',
         )
 
+    def get_is_subscribed(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return request.user.follower.filter(author=obj).exists()
+
 
 class CreateUserSerializer(
     PasswordValidationMixin, serializers.ModelSerializer
@@ -74,6 +79,8 @@ class CreateUserSerializer(
     """
     Сериализатор для создания нового пользователя.
     """
+
+    password = serializers.CharField(write_only=True)
 
     class Meta:
         model = User
@@ -117,13 +124,14 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 
 class TagSerializer(serializers.ModelSerializer):
-    """
-    Сериализатор для отображения тегов.
-    """
 
     class Meta:
         model = Tag
-        fields = ('id', 'name', 'color', 'slug')
+        fields = (
+            'id',
+            'name',
+            'slug',
+        )
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -295,15 +303,15 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='author.username')
     first_name = serializers.CharField(source='author.first_name')
     last_name = serializers.CharField(source='author.last_name')
+    is_subscribed = serializers.BooleanField(default=True)
     recipes = serializers.SerializerMethodField()
-    is_subscribed = serializers.BooleanField(read_only=True)
     recipes_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Subscribe
         fields = (
-            'email',
             'id',
+            'email',
             'username',
             'first_name',
             'last_name',
