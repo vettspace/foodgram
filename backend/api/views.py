@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from django.db.models import Count, Exists, OuterRef, Sum, Value
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from djoser.views import UserViewSet
 from recipes.models import (FavoriteRecipe, Ingredient, Recipe, ShoppingCart,
                             Subscribe, Tag)
@@ -329,12 +330,18 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'], url_path='get-link')
     def get_link(self, request, pk=None):
-        """
-        Представление для получения ссылки на рецепт.
-        """
-        recipe = self.get_object()
-        link = request.build_absolute_uri(f'/recipes/{recipe.id}/')
-        return Response({'link': link})
+        """Представление для получения ссылки на рецепт."""
+        try:
+            recipe = self.get_object()
+            link = request.build_absolute_uri(
+                reverse('api:recipes-detail', kwargs={'pk': recipe.id})
+            )
+            return Response({'short-link': link}, status=status.HTTP_200_OK)
+        except Recipe.DoesNotExist:
+            return Response(
+                {'detail': 'Рецепт не найден'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
     @action(
         detail=False, methods=['get'], permission_classes=(IsAuthenticated,)
