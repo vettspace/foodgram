@@ -39,7 +39,6 @@ urlpatterns = [
         'users/me/avatar/',
         CustomUserViewSet.as_view(
             {
-                'get': 'get_avatar',
                 'put': 'upload_avatar',
                 'delete': 'delete_avatar',
             }

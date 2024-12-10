@@ -1,19 +1,16 @@
-import django_filters as filters
 from django.core.exceptions import ValidationError
+from django.forms import MultipleChoiceField
+from django_filters import rest_framework as filters
 from recipes.models import Ingredient, Recipe
 from users.models import User
 
 
-class TagsMultipleChoiceField(filters.fields.MultipleChoiceField):
+class TagsMultipleChoiceField(MultipleChoiceField):
     """
     Кастомное поле для обработки валидации множественного выбора тегов.
     """
 
     def validate(self, value):
-        """
-        Проверяет переданное значение на соответствие обязательным
-        и допустимым вариантам.
-        """
         if self.required and not value:
             raise ValidationError(
                 self.error_messages['required'], code='required'
@@ -27,7 +24,7 @@ class TagsMultipleChoiceField(filters.fields.MultipleChoiceField):
                 )
 
 
-class TagsFilter(filters.AllValuesMultipleFilter):
+class TagsFilter(MultipleChoiceField):
     """
     Класс фильтра для обработки множественных значений тегов.
     """
@@ -37,30 +34,58 @@ class TagsFilter(filters.AllValuesMultipleFilter):
 
 class IngredientFilter(filters.FilterSet):
     """
-    Фильтры для ингредиентов по имени.
+    Фильтр для ингредиентов.
     """
-
-    name = filters.CharFilter(lookup_expr='istartswith')
+    name = filters.CharFilter(
+        field_name='name',
+        lookup_expr='icontains',
+        help_text='Поиск по названию ингредиента'
+    )
+    search = filters.CharFilter(
+        field_name='name',
+        lookup_expr='icontains',
+        help_text='Поиск по названию ингредиента'
+    )
 
     class Meta:
         model = Ingredient
-        fields = ('name',)
+        fields = ('name', 'search')
 
 
 class RecipeFilter(filters.FilterSet):
     """
-    Фильтры по различным критериям.
+    Фильтры для рецептов.
     """
 
-    author = filters.ModelChoiceFilter(queryset=User.objects.all())
+    tags = filters.AllValuesMultipleFilter(
+        field_name='tags__slug', help_text='Фильтрация по тегам'
+    )
+    author = filters.ModelChoiceFilter(
+        queryset=User.objects.all(), help_text='Фильтрация по автору'
+    )
     is_in_shopping_cart = filters.BooleanFilter(
-        widget=filters.widgets.BooleanWidget(), label='В корзине'
+        label='В корзине',
+        method='filter_is_in_shopping_cart',
+        help_text='Фильтрация по наличию в списке покупок',
     )
     is_favorited = filters.BooleanFilter(
-        widget=filters.widgets.BooleanWidget(), label='В избранном'
+        label='В избранном',
+        method='filter_is_favorited',
+        help_text='Фильтрация по наличию в избранном',
     )
-    tags = TagsFilter(field_name='tags__slug', label='Ссылка')
 
     class Meta:
         model = Recipe
         fields = ['is_favorited', 'is_in_shopping_cart', 'author', 'tags']
+
+    def filter_is_favorited(self, queryset, name, value):
+        user = self.request.user
+        if value and user.is_authenticated:
+            return queryset.filter(favorited_by__user=user)
+        return queryset
+
+    def filter_is_in_shopping_cart(self, queryset, name, value):
+        user = self.request.user
+        if value and user.is_authenticated:
+            return queryset.filter(shopping_cart__user=user)
+        return queryset

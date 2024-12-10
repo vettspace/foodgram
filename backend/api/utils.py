@@ -28,3 +28,9 @@ def generate_shopping_cart_csv(shopping_cart):
         writer.writerow(['Список покупок пуст'])
 
     return response
+
+
+def create_short_link(recipe_id: int, request) -> str:
+    """Создает прямую ссылку на рецепт."""
+    base_url = request.build_absolute_uri('/')[:-1]
+    return f"{base_url}/recipes/{recipe_id}"
