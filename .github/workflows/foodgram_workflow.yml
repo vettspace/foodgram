@@ -197,6 +197,6 @@ jobs:
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
             Деплой Foodgram успешно завершен!
-            Коммит: ${{ github.sha }}
+            Коммит: ${{ github.event.head_commit.message }}
             Ветка: ${{ github.ref }}
             Автор: ${{ github.actor }}
