@@ -78,7 +78,7 @@ class RecipeAdmin(admin.ModelAdmin):
         """
         Возвращает количество добавлений рецепта в избранное.
         """
-        return obj.favorite_recipe.count()
+        return obj.favorited_by.count()
 
 
 @admin.register(Tag)
