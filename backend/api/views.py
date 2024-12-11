@@ -481,7 +481,6 @@ class IngredientViewSet(AdminOrReadOnlyMixin, viewsets.ModelViewSet):
     pagination_class = None
 
 
-
 @api_view(['post'])
 @permission_classes([IsAuthenticated])
 def change_password(request):
