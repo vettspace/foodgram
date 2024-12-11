@@ -1,6 +1,6 @@
 # Foodgram - Продуктовый Помощник
 
-[![Foodgram Workflow Status](https://github.com/vettspace/foodgram/actions/workflows/foodgram_workflow.yml/badge.svg?branch=main)](https://github.com/vettspace/foodgram/actions/workflows/foodgram_workflow.yml)
+[![Foodgram Main Workflow](https://github.com/vettspace/foodgram/actions/workflows/foodgram_workflow.yml/badge.svg)](https://github.com/vettspace/foodgram/actions/workflows/foodgram_workflow.yml)
 
 ## Описание
 
