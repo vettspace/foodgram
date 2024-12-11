@@ -8,17 +8,14 @@ from djoser.views import UserViewSet
 from recipes.models import (FavoriteRecipe, Ingredient, Recipe, ShoppingCart,
                             Subscribe, Tag)
 from rest_framework import filters, generics, permissions, status, viewsets
-from rest_framework.authtoken.models import Token
-from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action
 from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from . import constants
 from .mixins import AdminOrReadOnlyMixin, RecipeAccessMixin
 from .permissions import IsAuthorOrAdminOrReadOnly
-from .serializers import (ChangePasswordSerializer, CreateUserSerializer,
-                          IngredientSerializer, ObtainTokenSerializer,
+from .serializers import (CreateUserSerializer, IngredientSerializer,
                           RecipeCreateUpdateSerializer, RecipeReadSerializer,
                           SetAvatarSerializer, SubscriptionSerializer,
                           TagSerializer, UserSerializer)
@@ -146,24 +143,6 @@ class ShoppingCartView(
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class CustomAuthToken(ObtainAuthToken):
-    """
-    Представление для получения токена.
-    """
-
-    serializer_class = ObtainTokenSerializer
-    permission_classes = (AllowAny,)
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(
-            data=request.data, context={'request': request}
-        )
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        token, created = Token.objects.get_or_create(user=user)
-        return Response({'auth_token': token.key})
-
-
 class CustomUserViewSet(UserViewSet):
     """
     Представление для управления пользователями.
@@ -186,55 +165,56 @@ class CustomUserViewSet(UserViewSet):
         return User.objects.annotate(is_subscribed=Value(False))
 
     def get_serializer_class(self):
-        return (
-            CreateUserSerializer
-            if self.request.method.lower() == 'post'
-            else UserSerializer
-        )
+        if self.action == 'create':
+            return CreateUserSerializer
+        elif self.action == 'subscriptions':
+            return SubscriptionSerializer
+        else:
+            return super().get_serializer_class()
 
     def perform_create(self, serializer):
         password = make_password(self.request.data['password'])
         serializer.save(password=password)
 
-        @action(
-            detail=False,
-            permission_classes=(IsAuthenticated,),
-            serializer_class=SubscriptionSerializer,
-        )
-        def subscriptions(self, request):
-            """
-            Получение списка подписок текущего пользователя.
+    @action(
+        detail=False,
+        permission_classes=(IsAuthenticated,),
+        serializer_class=SubscriptionSerializer,
+    )
+    def subscriptions(self, request):
+        """
+        Получение списка подписок текущего пользователя.
 
-            Параметры:
-            - recipes_limit: опциональный параметр для ограничения рецептов
-            """
-            recipes_limit = request.GET.get('recipes_limit')
-            if recipes_limit:
-                try:
-                    recipes_limit = int(recipes_limit)
-                    if recipes_limit < 0:
-                        return Response(
-                            {
-                                'error': 'recipes_limit must be >= 0',
-                            },
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-                except ValueError:
+        Параметры:
+        - recipes_limit: опциональный параметр для ограничения рецептов
+        """
+        recipes_limit = request.GET.get('recipes_limit')
+        if recipes_limit:
+            try:
+                recipes_limit = int(recipes_limit)
+                if recipes_limit < 0:
                     return Response(
-                        {'error': 'recipes_limit must be a valid integer'},
+                        {
+                            'error': 'recipes_limit must be >= 0',
+                        },
                         status=status.HTTP_400_BAD_REQUEST,
                     )
+            except ValueError:
+                return Response(
+                    {'error': 'recipes_limit must be a valid integer'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-            user = request.user
-            queryset = Subscribe.objects.filter(user=user).annotate(
-                recipes_count=Count('author__recipe'),
-                is_subscribed=Value(True),
-            )
-            pages = self.paginate_queryset(queryset)
-            serializer = self.get_serializer(
-                pages, many=True, context={'request': request}
-            )
-            return self.get_paginated_response(serializer.data)
+        user = request.user
+        queryset = Subscribe.objects.filter(user=user).annotate(
+            recipes_count=Count('author__recipe'),
+            is_subscribed=Value(True),
+        )
+        pages = self.paginate_queryset(queryset)
+        serializer = self.get_serializer(
+            pages, many=True, context={'request': request}
+        )
+        return self.get_paginated_response(serializer.data)
 
     @action(
         detail=False,
@@ -270,10 +250,7 @@ class CustomUserViewSet(UserViewSet):
         if request.user.avatar:
             request.user.avatar.delete()
             request.user.save()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response(
-            {'detail': 'Аватар отсутствует'}, status=status.HTTP_404_NOT_FOUND
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -472,6 +449,7 @@ class IngredientViewSet(AdminOrReadOnlyMixin, viewsets.ModelViewSet):
     """
     Представление для управления ингредиентами.
     """
+
     queryset = Ingredient.objects.all().order_by('name')
     serializer_class = IngredientSerializer
     permission_classes = (AdminOrReadOnlyMixin,)
@@ -479,21 +457,3 @@ class IngredientViewSet(AdminOrReadOnlyMixin, viewsets.ModelViewSet):
     filterset_class = IngredientFilter
     search_fields = ('^name',)
     pagination_class = None
-
-
-@api_view(['post'])
-@permission_classes([IsAuthenticated])
-def change_password(request):
-    """
-    Изменяет пароль пользователя.
-    """
-    serializer = ChangePasswordSerializer(
-        data=request.data, context={'request': request}
-    )
-    if serializer.is_valid():
-        serializer.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-    return Response(
-        serializer.errors,
-        status=status.HTTP_400_BAD_REQUEST,
-    )

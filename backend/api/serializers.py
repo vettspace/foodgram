@@ -1,7 +1,4 @@
-from django.contrib.auth import authenticate, get_user_model
-from django.contrib.auth.hashers import make_password
-from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError
+from django.contrib.auth import get_user_model
 from drf_base64.fields import Base64ImageField
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Subscribe, Tag
 from rest_framework import serializers
@@ -10,43 +7,6 @@ from .mixins import (IngredientCreationMixin, PasswordValidationMixin,
                      SubscriptionMixin)
 
 User = get_user_model()
-
-
-class ObtainTokenSerializer(serializers.Serializer):
-    """Сериализатор для получения токена."""
-
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True)
-
-    def validate(self, attrs):
-        email = attrs.get('email')
-        password = attrs.get('password')
-
-        if email and password:
-            user = authenticate(
-                request=self.context.get('request'),
-                username=email,
-                password=password,
-            )
-
-            if not user:
-                raise serializers.ValidationError(
-                    'Неверный email или пароль.',
-                    code='authorization',
-                )
-            if not user.is_active:
-                raise serializers.ValidationError(
-                    'Аккаунт не активен.',
-                    code='authorization',
-                )
-        else:
-            raise serializers.ValidationError(
-                'Должны быть указаны email и пароль.',
-                code='authorization',
-            )
-
-        attrs['user'] = user
-        return attrs
 
 
 class UserSerializer(SubscriptionMixin, serializers.ModelSerializer):
@@ -97,34 +57,6 @@ class CreateUserSerializer(
         )
 
 
-class ChangePasswordSerializer(serializers.Serializer):
-    """
-    Сериализатор для изменения пароля пользователя.
-    """
-
-    new_password = serializers.CharField(label='Новый пароль')
-    current_password = serializers.CharField(label='Текущий пароль')
-
-    def validate_current_password(self, current_password):
-        user = self.context['request'].user
-        if not authenticate(username=user.email, password=current_password):
-            raise serializers.ValidationError('Неверный текущий пароль.')
-        return current_password
-
-    def validate_new_password(self, new_password):
-        try:
-            validate_password(new_password)
-        except ValidationError as e:
-            raise serializers.ValidationError(e.messages)
-        return new_password
-
-    def create(self, validated_data):
-        user = self.context['request'].user
-        user.password = make_password(validated_data.get('new_password'))
-        user.save()
-        return validated_data
-
-
 class TagSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -140,6 +72,7 @@ class IngredientSerializer(serializers.ModelSerializer):
     """
     Сериализатор для отображения ингредиентов.
     """
+
     class Meta:
         model = Ingredient
         fields = '__all__'

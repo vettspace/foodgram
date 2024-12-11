@@ -1,6 +1,6 @@
-from api.views import (CustomAuthToken, CustomUserViewSet, FavoriteRecipeView,
+from api.views import (CustomUserViewSet, FavoriteRecipeView,
                        IngredientViewSet, RecipeViewSet, ShoppingCartView,
-                       SubscriptionView, TagViewSet, change_password)
+                       SubscriptionView, TagViewSet)
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
@@ -13,9 +13,6 @@ router.register('ingredients', IngredientViewSet, basename='ingredients')
 router.register('recipes', RecipeViewSet, basename='recipes')
 
 urlpatterns = [
-    # Аутентификация и управление пользователями
-    path('auth/token/login/', CustomAuthToken.as_view(), name='login'),
-    path('users/set_password/', change_password, name='set_password'),
     # Управление подписками
     path(
         'users/<int:user_id>/subscribe/',
@@ -34,7 +31,7 @@ urlpatterns = [
         ShoppingCartView.as_view(),
         name='shopping_cart',
     ),
-    # Управление аватаркой пользователя
+    # Управление аватаром пользователя
     path(
         'users/me/avatar/',
         CustomUserViewSet.as_view(
@@ -45,7 +42,9 @@ urlpatterns = [
         ),
         name='avatar',
     ),
+    # Основные маршруты
     path('', include(router.urls)),
-    path('', include('djoser.urls')),
+    # Маршруты Djoser
+    path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.authtoken')),
 ]

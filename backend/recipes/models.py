@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.core import validators
+from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -10,8 +11,14 @@ User = get_user_model()
 class Tag(models.Model):
     """Модель тегов."""
 
-    name = models.CharField('Название', max_length=60, unique=True)
-    slug = models.SlugField('Ссылка', max_length=100, unique=True)
+    name = models.CharField('Название', max_length=32, unique=True)
+    slug = models.SlugField(
+        'Ссылка',
+        max_length=32,
+        unique=True,
+        null=True,
+        validators=[RegexValidator(regex='^[-a-zA-Z0-9_]+$')],
+    )
 
     class Meta:
         verbose_name = 'Тег'
@@ -54,7 +61,6 @@ class Recipe(models.Model):
     image = models.ImageField(
         'Изображение рецепта',
         upload_to='static/recipe/',
-        blank=True,
         null=True,
     )
     text = models.TextField('Описание рецепта')
@@ -152,6 +158,7 @@ class FavoriteRecipe(models.Model):
     """
     Модель для избранных рецептов.
     """
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -162,7 +169,7 @@ class FavoriteRecipe(models.Model):
         Recipe,
         on_delete=models.CASCADE,
         related_name='favorited_by',
-        verbose_name='Избранный рецепт'
+        verbose_name='Избранный рецепт',
     )
 
     class Meta:
@@ -170,8 +177,7 @@ class FavoriteRecipe(models.Model):
         verbose_name_plural = 'Избранные рецепты'
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'recipe'],
-                name='unique_favorite_recipe'
+                fields=['user', 'recipe'], name='unique_favorite_recipe'
             )
         ]
 
