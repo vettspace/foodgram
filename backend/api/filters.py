@@ -38,18 +38,13 @@ class IngredientFilter(filters.FilterSet):
     """
     name = filters.CharFilter(
         field_name='name',
-        lookup_expr='icontains',
-        help_text='Поиск по названию ингредиента'
-    )
-    search = filters.CharFilter(
-        field_name='name',
-        lookup_expr='icontains',
+        lookup_expr='istartswith',
         help_text='Поиск по названию ингредиента'
     )
 
     class Meta:
         model = Ingredient
-        fields = ('name', 'search')
+        fields = ('name',)
 
 
 class RecipeFilter(filters.FilterSet):

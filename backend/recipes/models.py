@@ -27,8 +27,8 @@ class Ingredient(models.Model):
     Модель ингредиентов.
     """
 
-    name = models.CharField('Название ингредиента', max_length=200)
-    measurement_unit = models.CharField('Единица измерения', max_length=200)
+    name = models.CharField('Название ингредиента', max_length=128)
+    measurement_unit = models.CharField('Единица измерения', max_length=64)
 
     class Meta:
         ordering = ['name']

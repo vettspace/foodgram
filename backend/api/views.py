@@ -472,31 +472,14 @@ class IngredientViewSet(AdminOrReadOnlyMixin, viewsets.ModelViewSet):
     """
     Представление для управления ингредиентами.
     """
-
     queryset = Ingredient.objects.all().order_by('name')
     serializer_class = IngredientSerializer
-    permission_classes = (AllowAny,)
+    permission_classes = (AdminOrReadOnlyMixin,)
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)
     filterset_class = IngredientFilter
     search_fields = ('^name',)
     pagination_class = None
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        name = self.request.query_params.get('name')
-        search = self.request.query_params.get('search')
-
-        if name:
-            queryset = queryset.filter(name__icontains=name)
-        if search:
-            queryset = queryset.filter(name__icontains=search)
-
-        return queryset
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
 
 
 @api_view(['post'])
