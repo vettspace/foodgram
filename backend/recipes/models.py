@@ -1,9 +1,11 @@
 from django.contrib.auth import get_user_model
-from django.core import validators
-from django.core.validators import RegexValidator
+from django.core.validators import (MaxValueValidator, MinValueValidator,
+                                    RegexValidator)
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+
+from api import constants
 
 User = get_user_model()
 
@@ -30,26 +32,26 @@ class Tag(models.Model):
 
 
 class Ingredient(models.Model):
-    """
-    Модель ингредиентов.
-    """
+    """Модель ингредиентов."""
 
-    name = models.CharField('Название ингредиента', max_length=128)
-    measurement_unit = models.CharField('Единица измерения', max_length=64)
+    name = models.CharField(
+        'Название ингредиента', max_length=constants.INGREDIENT_NAME_LENGTH
+    )
+    measurement_unit = models.CharField(
+        'Единица измерения', max_length=constants.MEASUREMENT_UNIT_LENGTH
+    )
 
     class Meta:
-        ordering = ['name']
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
+        ordering = ['name']
 
     def __str__(self):
         return f'{self.name}, {self.measurement_unit}.'
 
 
 class Recipe(models.Model):
-    """
-    Модель для рецептов.
-    """
+    """Модель для рецептов."""
 
     author = models.ForeignKey(
         User,
@@ -57,7 +59,9 @@ class Recipe(models.Model):
         related_name='recipe',
         verbose_name='Автор',
     )
-    name = models.CharField('Название рецепта', max_length=256)
+    name = models.CharField(
+        'Название рецепта', max_length=constants.RECIPE_NAME_LENGTH
+    )
     image = models.ImageField(
         'Изображение рецепта',
         upload_to='static/recipe/',
@@ -67,8 +71,13 @@ class Recipe(models.Model):
     cooking_time = models.PositiveSmallIntegerField(
         verbose_name='Время приготовления в минутах',
         validators=[
-            validators.MinValueValidator(
-                1, message='Время приготовление должно быть больше 1 минуты'
+            MinValueValidator(
+                constants.MIN_COOKING_TIME,
+                message=constants.COOKING_TIME_ERROR,
+            ),
+            MaxValueValidator(
+                constants.MAX_COOKING_TIME,
+                message=constants.COOKING_TIME_ERROR,
             ),
         ],
     )
@@ -90,9 +99,7 @@ class Recipe(models.Model):
 
 
 class RecipeIngredient(models.Model):
-    """
-    Модель для связи рецептов и ингредиентов.
-    """
+    """Модель для связи рецептов и ингредиентов."""
 
     recipe = models.ForeignKey(
         Recipe, on_delete=models.CASCADE, related_name='recipe'
@@ -101,10 +108,15 @@ class RecipeIngredient(models.Model):
         'Ingredient', on_delete=models.CASCADE, related_name='ingredient'
     )
     amount = models.PositiveSmallIntegerField(
-        default=1,
+        default=constants.MIN_AMOUNT,
         validators=(
-            validators.MinValueValidator(
-                1, message='Количество ингридиентов должно быть больше одного'
+            MinValueValidator(
+                constants.MIN_AMOUNT,
+                message=f'Количество должно быть >= {constants.MIN_AMOUNT}',
+            ),
+            MaxValueValidator(
+                constants.MAX_AMOUNT,
+                message=f'Количество должно быть <= {constants.MAX_AMOUNT}',
             ),
         ),
         verbose_name='Количество',
@@ -120,11 +132,12 @@ class RecipeIngredient(models.Model):
             )
         ]
 
+    def __str__(self):
+        return f'{self.recipe.name} - {self.ingredient.name}: {self.amount}'
+
 
 class Subscribe(models.Model):
-    """
-    Модель для подписок пользователей.
-    """
+    """Модель для подписок пользователей."""
 
     user = models.ForeignKey(
         User,
@@ -155,9 +168,7 @@ class Subscribe(models.Model):
 
 
 class FavoriteRecipe(models.Model):
-    """
-    Модель для избранных рецептов.
-    """
+    """Модель для избранных рецептов."""
 
     user = models.ForeignKey(
         User,
@@ -175,6 +186,7 @@ class FavoriteRecipe(models.Model):
     class Meta:
         verbose_name = 'Избранный рецепт'
         verbose_name_plural = 'Избранные рецепты'
+        ordering = ['-id']  # Добавлена сортировка
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'recipe'], name='unique_favorite_recipe'
@@ -186,9 +198,7 @@ class FavoriteRecipe(models.Model):
 
 
 class ShoppingCart(models.Model):
-    """
-    Модель для корзины покупок.
-    """
+    """Модель для корзины покупок."""
 
     user = models.OneToOneField(
         User,
@@ -213,8 +223,6 @@ class ShoppingCart(models.Model):
     @staticmethod
     @receiver(post_save, sender=User)
     def create_shopping_cart(sender, instance, created, **kwargs):
-        """
-        Создает объект корзины покупок при создании пользователя.
-        """
+        """Создает объект корзины покупок при создании пользователя."""
         if created:
             return ShoppingCart.objects.create(user=instance)
