@@ -143,3 +143,5 @@ media/
 
 .DS_Store
 **/.DS_Store
+local_deploy.sh
+pyproject.toml

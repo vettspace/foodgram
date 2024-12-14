@@ -48,13 +48,13 @@
 
 1. **Склонируйте репозиторий:**
 
-   ```bash
+   ```
    git clone https://github.com/vettspace/foodgram.git
    ```
 
 2. **Перейдите в директорию проекта:**
 
-   ```bash
+   ```
    cd foodgram/infra/
    ```
 
@@ -62,7 +62,7 @@
 
    Создайте файл `.env` в директории `infra/` и добавьте в него следующие переменные:
 
-   ```dotenv
+   ```
    DB_ENGINE=django.db.backends.postgresql
    POSTGRES_DB=foodgram
    POSTGRES_USER=foodgram_user
@@ -76,13 +76,13 @@
 
 4. **Запустите Docker Compose:**
 
-   ```bash
+   ```
    docker-compose up -d --build
    ```
 
 5. **Выполните миграции, соберите статику и создайте суперпользователя:**
 
-   ```bash
+   ```
    # Применение миграций
    docker-compose exec backend python manage.py migrate
    
@@ -95,7 +95,7 @@
 
 6. **(Опционально) Загрузите данные в базу данных:**
 
-   ```bash
+   ```
    # Создание тегов
    docker-compose exec backend python manage.py create_tags
    
@@ -138,44 +138,29 @@
 
 ## Скрипты проекта
 
-### `local_deploy.sh`
-
-Скрипт для локального развертывания проекта. Он:
-
-- Останавливает и удаляет все контейнеры, образы и тома Docker (все данные будут удалены).
-- Собирает Docker-образы для фронтенда и бэкенда.
-- Запускает Docker Compose для локального развертывания.
-- Выполняет миграции, собирает статику, создает тестовые данные и суперпользователя.
-
-**Использование:**
-
-```bash
-./local_deploy.sh
-```
-
 ### Создание тестовых данных
 
 - **`create_tags.py`** — создает предустановленные теги (например, "Завтрак", "Обед", "Ужин").
 
-  ```bash
+  ```
   docker-compose exec backend python manage.py create_tags
   ```
 
 - **`load_ingredients.py`** — загружает список ингредиентов из файла `ingredients.json`.
 
-  ```bash
+  ```
   docker-compose exec backend python manage.py load_ingredients data/ingredients.json
   ```
 
 - **`create_users.py`** — создает тестовых пользователей.
 
-  ```bash
+  ```
   docker-compose exec backend python manage.py create_users
   ```
 
 - **`create_recipes.py`** — создает тестовые рецепты с использованием данных из `test_recipes_data.py` и изображений из `test_pics`.
 
-  ```bash
+  ```
   docker-compose exec backend python manage.py create_recipes
   ```
 
@@ -204,7 +189,6 @@ foodgram/
 ├── docs/
 │   ├── openapi-schema.yml
 │   └── redoc.html
-├── local_deploy.sh
 └── README.md
 ```
 
@@ -230,3 +214,7 @@ http://localhost/api/docs/
 ## Автор
 
 [Виталий Орлов](https://github.com/vettspace)
+
+## Сайт проекта
+
+Посетите сайт проекта по адресу: [fdgrm.space](https://fdgrm.space)

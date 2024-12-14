@@ -11,16 +11,22 @@ from rest_framework.response import Response
 
 from api.filters import IngredientFilter, RecipeFilter
 from recipes.models import FavoriteRecipe, Ingredient, Recipe, Subscribe, Tag
-
 from . import constants
 from .mixins import AdminOrReadOnlyMixin, RecipeAccessMixin
 from .pagination import PagePagination
 from .permissions import IsAuthorOrAdminOrReadOnly
-from .serializers import (CreateUserSerializer, FavoriteRecipeSerializer,
-                          IngredientSerializer, RecipeCreateUpdateSerializer,
-                          RecipeReadSerializer, SetAvatarSerializer,
-                          ShoppingCartSerializer, SubscriptionSerializer,
-                          TagSerializer, UserSerializer)
+from .serializers import (
+    CreateUserSerializer,
+    FavoriteRecipeSerializer,
+    IngredientSerializer,
+    RecipeCreateUpdateSerializer,
+    RecipeReadSerializer,
+    SetAvatarSerializer,
+    ShoppingCartSerializer,
+    SubscriptionSerializer,
+    TagSerializer,
+    UserSerializer,
+)
 from .utils import create_short_link, generate_shopping_cart_csv
 
 User = get_user_model()

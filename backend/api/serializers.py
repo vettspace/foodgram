@@ -2,12 +2,21 @@ from django.contrib.auth import get_user_model
 from drf_base64.fields import Base64ImageField
 from rest_framework import serializers
 
-from recipes.models import (FavoriteRecipe, Ingredient, Recipe,
-                            RecipeIngredient, ShoppingCart, Subscribe, Tag)
-
+from recipes.models import (
+    FavoriteRecipe,
+    Ingredient,
+    Recipe,
+    RecipeIngredient,
+    ShoppingCart,
+    Subscribe,
+    Tag,
+)
 from . import constants
-from .mixins import (IngredientCreationMixin, PasswordValidationMixin,
-                     SubscriptionMixin)
+from .mixins import (
+    IngredientCreationMixin,
+    PasswordValidationMixin,
+    SubscriptionMixin,
+)
 
 User = get_user_model()
 
@@ -216,7 +225,7 @@ class RecipeCreateUpdateSerializer(
 
             # Проверяем существование ингредиента
             try:
-                _ = Ingredient.objects.get(id=ingredient_id)
+                Ingredient.objects.get(id=ingredient_id)
             except Ingredient.DoesNotExist as exc:
                 raise serializers.ValidationError(
                     {'ingredients': constants.INGREDIENT_NOT_EXIST_ERROR}
@@ -237,12 +246,12 @@ class RecipeCreateUpdateSerializer(
         return data
 
     def validate_name(self, value):
-        if len(value.strip()) == 0:
+        if not value.strip():
             raise serializers.ValidationError(constants.RECIPE_NAME_EMPTY)
         return value.strip()
 
     def validate_text(self, value):
-        if len(value.strip()) == 0:
+        if not value.strip():
             raise serializers.ValidationError(constants.RECIPE_TEXT_EMPTY)
         return value.strip()
 
@@ -278,8 +287,7 @@ class SetAvatarSerializer(serializers.Serializer):
     def validate_avatar(self, value):
         if value.size > constants.MAX_AVATAR_SIZE_BYTES:
             raise serializers.ValidationError(
-                f'{constants.AVATAR_ERROR} '
-                f'{constants.MAX_AVATAR_SIZE_BYTES // (1024 * 1024)}MB'
+                f'{constants.AVATAR_ERROR} {constants.MAX_AVATAR_SIZE_MB}MB'
             )
         return value
 

@@ -14,8 +14,9 @@ MIN_COOKING_TIME = 1
 MAX_COOKING_TIME = 32000
 
 # Ограничения для аватара
+BYTES_IN_MB = 1024 * 1024
 MAX_AVATAR_SIZE_MB = 2
-MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * 1024 * 1024
+MAX_AVATAR_SIZE_BYTES = MAX_AVATAR_SIZE_MB * BYTES_IN_MB
 
 # Сообщения об ошибках для рецептов
 RECIPE_NAME_REQUIRED = 'Название рецепта обязательно.'
