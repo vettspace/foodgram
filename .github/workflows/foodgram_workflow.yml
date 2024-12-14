@@ -42,10 +42,7 @@ jobs:
         DB_PORT: 5432
       run: |
         cd backend
-        python -m flake8 . \
-            --ignore=W503 \
-            --exclude=tests/,*/migrations/,data/,venv/,env/,docs/,frontend/,infra/ \
-            --per-file-ignores="*/settings.py:E501"
+        python -m flake8
 
   build_and_push_to_docker_hub:
     name: Push backend image to Docker Hub
