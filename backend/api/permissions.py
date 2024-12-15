@@ -1,19 +1,15 @@
 from rest_framework import permissions
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 
-class IsAdminOrReadOnly(permissions.BasePermission):
+class IsAdminOrReadOnly(BasePermission):
     """
-    Разрешение, позволяющее доступ только администраторам
-    для небезопасных методов.
+    Доступ для администраторов или в режиме только для чтения.
     """
-
     def has_permission(self, request, view):
-        """
-        Проверяет, имеет ли пользователь разрешение на выполнение запроса.
-        """
-        return (
-            request.method in permissions.SAFE_METHODS or request.user.is_staff
-        )
+        if request.method in SAFE_METHODS:
+            return True
+        return request.user and request.user.is_staff
 
 
 class IsAuthorOrAdminOrReadOnly(permissions.BasePermission):

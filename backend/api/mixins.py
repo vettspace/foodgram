@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAdminUser
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 
 from recipes.models import Recipe, RecipeIngredient
@@ -13,6 +13,7 @@ class RecipeAccessMixin:
 
     serializer_class = None
     permission_classes = (AllowAny,)
+    http_method_names = ['get', 'options', 'head']
 
     def get_recipe(self):
         """
@@ -29,9 +30,10 @@ class AdminOrReadOnlyMixin:
     Миксин для предоставления доступа только администраторам
     или в режиме только для чтения.
     """
+
     def get_permissions(self):
         """
-        Устанавливает разрешения в зависимости от действия.
+        Устанавливает разрешения в зависимости от действия.
         """
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [IsAdminUser()]
@@ -39,14 +41,12 @@ class AdminOrReadOnlyMixin:
 
     def handle_no_permission(self):
         """
-        Обрабатывает случай, когда пользователь не имеет прав доступа.
+        Обрабатывает случай, когда пользователь не имеет прав доступа.
         """
-        if self.request.method not in SAFE_METHODS:
-            return Response(
-                {"detail": "Method not allowed."},
-                status=status.HTTP_405_METHOD_NOT_ALLOWED
-            )
-        return super().handle_no_permission()
+        return Response(
+            {"detail": "Method not allowed."},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
 
 
 class SubscriptionMixin:

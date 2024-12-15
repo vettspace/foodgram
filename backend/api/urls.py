@@ -3,10 +3,8 @@ from rest_framework.routers import DefaultRouter
 
 from api.views import (
     CustomUserViewSet,
-    FavoriteRecipeView,
     IngredientViewSet,
     RecipeViewSet,
-    ShoppingCartView,
     SubscriptionView,
     TagViewSet,
 )
@@ -25,18 +23,6 @@ urlpatterns = [
         'users/<int:user_id>/subscribe/',
         SubscriptionView.as_view(),
         name='subscribe',
-    ),
-    # Управление избранными рецептами
-    path(
-        'recipes/<int:recipe_id>/favorite/',
-        FavoriteRecipeView.as_view(),
-        name='favorite_recipe',
-    ),
-    # Управление корзиной покупок
-    path(
-        'recipes/<int:recipe_id>/shopping_cart/',
-        ShoppingCartView.as_view(),
-        name='shopping_cart',
     ),
     # Управление аватаром пользователя
     path(
