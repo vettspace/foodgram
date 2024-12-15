@@ -2,6 +2,9 @@
 
 [![Foodgram Main Workflow](https://github.com/vettspace/foodgram/actions/workflows/foodgram_workflow.yml/badge.svg)](https://github.com/vettspace/foodgram/actions/workflows/foodgram_workflow.yml)
 
+<img width="1404" alt="ddd" src="https://github.com/user-attachments/assets/5a82ecda-7cb1-4ef4-8493-5c736ef06f9e" />
+
+
 ## Описание
 
 **Foodgram** - это веб-приложение «Продуктовый помощник», где пользователи могут публиковать рецепты, подписываться на других пользователей, добавлять рецепты в избранное и создавать список покупок ингредиентов для выбранных блюд.
